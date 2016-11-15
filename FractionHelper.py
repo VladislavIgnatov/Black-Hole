@@ -66,7 +66,7 @@ class LoginWindow(tk.Frame):
         # Entry for Username and Password
         self.username_entry = tk.Entry(self)
         self.username_entry.grid(row=1, column=2)
-        self.password_entry = tk.Entry(self)
+        self.password_entry = tk.Entry(self, show= '*')
         self.password_entry.grid(row=2, column=2)
 
 		# Space in the grid
