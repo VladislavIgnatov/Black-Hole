@@ -1,5 +1,6 @@
 import tkinter as tk
 import operator
+import sqlite3
 
 # Set Operators for use in Solver window
 ops = {"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.truediv}
@@ -26,6 +27,24 @@ class App(tk.Tk):
         #Initialize the defualt grid weight for row and column.
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
+
+        #database stuff
+        print("Connecting to database")
+        sqlite_file = 'fshdb.sqlite'
+        conn = sqlite3.connect(sqlite_file)
+        c = conn.cursor()
+        print ('Database connected')
+        try:
+           c.execute('CREATE TABLE users (ID text PRIMARY KEY, Pass text)')
+        except sqlite3.OperationalError:
+           print("Table already exists")
+        try:
+           c.execute("INSERT INTO users (ID, Pass) VALUES ('admin', 'passmin')")
+        except sqlite3.IntegrityError:
+           print("That ID already exists")
+
+        conn.commit()
+        conn.close()
 
         # Username after it has been validated
         self.username = ""
@@ -66,7 +85,8 @@ class LoginWindow(tk.Frame):
         # Entry for Username and Password
         self.username_entry = tk.Entry(self)
         self.username_entry.grid(row=1, column=2)
-        self.password_entry = tk.Entry(self, show= '*')
+        self.username_entry.focus_set()
+        self.password_entry = tk.Entry(self, show='*')
         self.password_entry.grid(row=2, column=2)
 
 		# Space in the grid
@@ -98,13 +118,24 @@ class LoginWindow(tk.Frame):
     		ErrorboxGeneratpr("Error: No Input is given. Username or Password is missing.")
     	else:
     		# TODO implement Login DataBase verification
-    		print("Login Test: (Username: " + username_get + " Password: " + password_get + ")")
-    		
-    		# Set the username if valid for later refrence in quizzer and viewresults
-    		self.controller.username = username_get
+                conn = sqlite3.connect('fshdb.sqlite')
+                c = conn.cursor()
+                c.execute("SELECT ID FROM users WHERE ID = ?", (username_get,))
+                data=c.fetchall()
+                if len(data) == 0:
+                   ErrorboxGeneratpr ("User name does not exist")
+                else:
+                   c.execute("SELECT Pass FROM users WHERE ID = ?", (username_get,))        
+                   datas = c.fetchone()
+                   if datas[0] != password_get:
+                      ErrorboxGeneratpr("Password incorrect")
+                   else:
+    		      # Set the username if valid for later refrence in quizzer and viewresults
+                      self.controller.username = username_get
 
-    		# If in DB goes to MainWindow
-    		self.controller.show_frame("MainWindow")
+    		      # If in DB goes to MainWindow
+                      self.controller.show_frame("MainWindow")
+                conn.close()
 
 class MainWindow(tk.Frame):
 
@@ -282,20 +313,22 @@ class RegisterWindow(tk.Frame):
     	if (username_get == "" or password1_get == "" or password2_get == ""):
     		ErrorboxGeneratpr("Error: No Input is given. Username or Password is missing.")
     	else:
-    		# Check to see if password match, prints our error message if not
-    		if password2_get == password1_get:
-	    		# TODO Check if user in Database if not add to Database
-	    		print("Login Test: (Username: " + username_get + " Password: " + password1_get + ")")
-	    		
-	    		# Set the username if valid for later refrence in quizzer and viewresults
-	    		self.controller.username = username_get
+           data = None
+           conn = sqlite3.connect('fshdb.sqlite')
+           c = conn.cursor()
+           c.execute("SELECT ID FROM users WHERE ID = ?", (username_get,))
+           data=c.fetchone()
+           if data:
+              ErrorboxGeneratpr("Username already in use.")
+           elif password2_get == password1_get:
+              c.execute("INSERT INTO users (ID, Pass) VALUES (?, ?)", (username_get, password1_get))
+              self.controller.username = username_get
+              self.controller.show_frame("MainWindow")
+              conn.commit()
+              conn.close()
+           else:
+              ErrorboxGeneratpr("The passwords you have entered do not match.")
 
-	    		# If in DB goes to MainWindow
-	    		self.controller.show_frame("MainWindow")
-	    	else:
-	    		ErrorboxGeneratpr("The passwords you have entered do not match.")
-
-# Generates error boxes, takes in a String
 def ErrorboxGeneratpr(tmp):
 	# Creates window.
 	ErrorWindow = tk.Toplevel()
@@ -316,4 +349,4 @@ def ErrorboxGeneratpr(tmp):
 
 if __name__ == "__main__":
     app = App()
-    app.mainloop()
+app.mainloop()
