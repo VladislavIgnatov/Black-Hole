@@ -35,6 +35,10 @@ class App(tk.Tk):
         c = conn.cursor()
         print ('Database connected')
         try:
+           c.execute('CREATE TABLE results (ID text, Addition real, Subtraction real, Multiplication real, Division real, Average real)')
+        except sqlite3.OperationalError:
+           print("Results table exists")
+        try:
            c.execute('CREATE TABLE users (ID text PRIMARY KEY, Pass text)')
         except sqlite3.OperationalError:
            print("Table already exists")
@@ -302,6 +306,7 @@ class RegisterWindow(tk.Frame):
         # Exit button to get out of application
         Exit_button = tk.Button(self, text="Exit", width=12, command=self.quit)
         Exit_button.grid(columnspan=2)
+
 
     def NewUserCreation(self):
     	# Sets the username and password as Strings
