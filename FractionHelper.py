@@ -61,7 +61,7 @@ class App(tk.Tk):
         # Frame Dictionary holds (LoginWindow, MainWindow, SolverWindow, QuizzerWindow, ViewResultsWindow, RegisterWindow)
         self.frames = {}
 
-        for F in (LoginWindow, MainWindow, SolverWindow, QuizzerWindow, ViewResultsWindow, RegisterWindow):
+        for F in (LoginWindow, MainWindow, SolverWindow, QuizzerWindow, RegisterWindow):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -442,35 +442,6 @@ class QuizzerWindow(tk.Frame):
         conn.commit()
         conn.close()
         print("Save results for username '{0}'".format(self.controller.username), operator, points,)
-
-
-class ViewResultsWindow(tk.Frame):
-
-    def __init__(self, parent, controller):
-        tk.Frame.__init__(self, parent)
-        self.controller = controller
-
-        #TODO using (controller.username) Show table of the users results.
-        label = tk.Label(self, text="ViewResultsWindow")
-        label.pack(side="top", fill="x", pady=10)
-
-
-        
-        view = tk.Button(self, text='Show Scores', command=self.graph)
-        view.pack()
-
-        button = tk.Button(self, text="MainWindow",
-                           command=lambda: controller.show_frame("MainWindow"))
-        button.pack()
-    def graph(self):
-        objects = ('Addition', 'Subtraction', 'Multiplication', 'Division', 'OverAll')
-        horiz = np.arange(len(objects))
-        scores = [90, 80, 55, 75, 35]
-        plt.bar(horiz, scores, align='center', alpha=0.5)
-        plt.xticks(horiz, objects)
-        plt.ylabel('Average')
-        plt.title('Quiz Averages')
-        plt.show()
 
 class RegisterWindow(tk.Frame):
 
