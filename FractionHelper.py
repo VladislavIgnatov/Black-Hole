@@ -1,6 +1,11 @@
 import tkinter as tk
 import operator
 import sqlite3
+from fractions import Fraction
+import random
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 # Set Operators for use in Solver window
 ops = {"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.truediv}
@@ -35,17 +40,17 @@ class App(tk.Tk):
         c = conn.cursor()
         print ('Database connected')
         try:
-           c.execute('CREATE TABLE results (ID text, Addition real, Subtraction real, Multiplication real, Division real, Average real)')
+           c.execute('CREATE TABLE results (ID text, Operator text, Average real)')
         except sqlite3.OperationalError:
            print("Results table exists")
         try:
            c.execute('CREATE TABLE users (ID text PRIMARY KEY, Pass text)')
         except sqlite3.OperationalError:
-           print("Table already exists")
+           print("Table initialized")
         try:
            c.execute("INSERT INTO users (ID, Pass) VALUES ('admin', 'passmin')")
         except sqlite3.IntegrityError:
-           print("That ID already exists")
+           print("Admin verified")
 
         conn.commit()
         conn.close()
@@ -156,13 +161,78 @@ class MainWindow(tk.Frame):
         Quizzerbutton = tk.Button(self, text="Quizzer", width=10,
         	command=lambda: controller.show_frame("QuizzerWindow"))
         Quizzerbutton.pack()
-        ViewResultsbutton = tk.Button(self, text="View Results", width=10,
-        	command=lambda: controller.show_frame("ViewResultsWindow"))
+        ViewResultsbutton = tk.Button(self, text="View Scores", width=10,
+        	command=self.graph)
         ViewResultsbutton.pack()
 
         # Exit button to get out of application
         Quit_button = tk.Button(self, text="Quit", width=10, command=self.quit)
         Quit_button.pack()
+
+    def graph(self):
+        objects = ('Addition', 'AddAll', 'Subtraction', 'SubAll', 'Multiplication', 'MultiAll', 'Division', 'DivAll', 'OverAll', 'OverAllAll')
+        horiz = np.arange(len(objects))
+        sumAdds, sumSubts, sumMults, sumDivs, sumOps = (0,0,0,0,0)
+        numAdds, numSubts, numMults, numDivs, numOps = (0,0,0,0,0)
+        sumAddsAll, sumSubtsAll, sumMultsAll, sumDivsAll, sumOpsAll = (0,0,0,0,0)
+        numAddsAll, numSubtsAll, numMultsAll, numDivsAll, numOpsAll = (0,0,0,0,0)
+        usr = self.controller.username
+        dbQuery = "SELECT * FROM results WHERE ID = '" + usr + "'"
+        sqlite_file = 'fshdb.sqlite'
+        conn = sqlite3.connect(sqlite_file)
+        d = conn.execute(dbQuery)
+        for row in d:
+            if (row[1] == '+'):
+                sumAdds += row[2]
+                numAdds += 1
+            elif (row[1] == '-'):
+                sumSubts += row[2]
+                numSubts += 1
+            elif (row[1] == '*'):
+                sumMults += row[2]
+                numMults += 1
+            elif (row[1] == '/'):
+                sumDivs += row[2]
+                numDivs += 1
+            sumOps += row[2]
+            numOps += 1
+        db2Query = 'SELECT * FROM results'
+        f = conn.execute(db2Query)
+        for row in f:
+            if (row[1] == '+'):
+                sumAddsAll += row[2]
+                numAddsAll += 1
+            elif (row[1] == '-'):
+                sumSubtsAll += row[2]
+                numSubtsAll += 1
+            elif (row[1] == '*'):
+                sumMultsAll += row[2]
+                numMultsAll += 1
+            elif (row[1] == '/'):
+                sumDivsAll += row[2]
+                numDivsAll += 1
+            sumOpsAll += row[2]
+            numOpsAll += 1
+       
+        conn.close()
+
+        if numAdds == 0: numAdds = 1
+        if numSubts == 0: numSubts = 1
+        if numMults == 0: numMults = 1
+        if numDivs == 0: numDivs = 1
+        if numOps == 0: numOps = 1
+        if numAddsAll == 0: numAddsAll = 1
+        if numSubtsAll == 0: numSubtsAll = 1
+        if numMultsAll == 0: numMultsAll = 1
+        if numDivsAll == 0: numDivsAll = 1
+        if numOpsAll == 0: numOpsAll = 1
+
+        scores = [sumAdds / numAdds, sumAddsAll/numAddsAll, sumSubts / numSubts, sumSubtsAll / numSubtsAll, sumMults / numMults, sumMultsAll / numMultsAll, sumDivs / numDivs, sumDivsAll / numDivsAll, sumOps / numOps, sumOpsAll / numOpsAll]
+        plt.bar(horiz, scores, align='center', alpha=0.5)
+        plt.xticks(horiz, objects, rotation='vertical')
+        plt.ylabel('Average')
+        plt.title('Quiz Averages')
+        plt.show()        
 
 class SolverWindow(tk.Frame):
 
@@ -249,11 +319,130 @@ class QuizzerWindow(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        label = tk.Label(self, text="QuizzerWindow")
-        label.pack(side="top", fill="x", pady=10)
+        
+        # Title for window and spacer after
+        tk.Label(self, text="Quizzer Window").pack()
+        tk.Label(self, text="").pack()
+        
+        # Create the main frame for our equation and answer
+        mainFrame = tk.Frame(self)
+        mainFrame.pack()
+        
+        # First fraction
+        self.firstFraction = tk.Label(self, text="")
+        self.firstFraction.grid(row=2, column=0, in_=mainFrame)
+        
+        # List of operators to choose
+        self.operator_input = tk.Listbox(self, height=4 , width=3)
+        self.operator_input.grid(row=2, column=1, in_=mainFrame)
+        self.operator_input.insert(1,"+")
+        self.operator_input.insert(2,"-")
+        self.operator_input.insert(3,"*")
+        self.operator_input.insert(4,"/")
+        
+        # Second fraction
+        self.secondFraction = tk.Label(self, text="")
+        self.secondFraction.grid(row=2, column=2, in_=mainFrame)
+        
+        # Equal sign
+        label = tk.Label(self, text="=")
+        label.grid(row=2, column=3, in_=mainFrame)
+        
+        ### Answer views
+        # Answer numerator
+        self.numerator = tk.Entry(self, width=5)
+        self.numerator.grid(row=2, column=4, in_=mainFrame)
+        
+        # Answer fraction sign
+        label = tk.Label(self, text="/", borderwidth=2)
+        label.grid(row=2,column=5, in_=mainFrame)
+        
+        # Answer denominator
+        self.denominator = tk.Entry(self, width=5)
+        self.denominator.grid(row=2, column=6, in_=mainFrame)
+        
+        ## Results Label
+        self.resultsLabel = tk.Label(self, text="")
+        self.resultsLabel.grid(row=3, column=0, columnspan=6, in_=mainFrame)
+        
+        #### Final buttons, with spacer above
+        # Answer submit button
+        tk.Label(self, text="").pack()
+        button = tk.Button(self, text="Submit Answer",
+                           command=self.QuizzerSubmitAnswer)
+        button.pack()
+
+        # Put the button to go back to main window
         button = tk.Button(self, text="MainWindow",
                            command=lambda: controller.show_frame("MainWindow"))
         button.pack()
+        
+        #### Get our fractions
+        self.QuizzerSetRandomEquation()
+        
+    def QuizzerSetRandomEquation(self):
+        # TODO: How large should these get? Isn't the program meant to be for kids learning fractions....figured it shouldn't be too high
+        self.numer1 = random.randint(1,20)
+        self.denom1 = random.randint(1,20)
+        
+        self.numer2 = random.randint(1,20)
+        self.denom2 = random.randint(1,20)
+        
+        self.frac1 = Fraction(self.numer1,self.denom1)
+        self.frac2 = Fraction(self.numer2,self.denom2)
+        
+        self.firstFraction['text'] = self.frac1
+        self.secondFraction['text'] = self.frac2
+    
+    def QuizzerSubmitAnswer(self):
+        try:
+            # Get all our data from the user's selections and put answer into fraction
+            selectedOperator = self.operator_input.get(self.operator_input.curselection())
+            ansNumer = int(self.numerator.get())
+            ansDenom = int(self.denominator.get())
+            givenAnswer = Fraction("{0}/{1}".format(ansNumer, ansDenom))
+            
+            # Calculate the correct answer
+            operator = ops[selectedOperator]
+            correctAnswer = operator(self.frac1,self.frac2)
+            
+            # If they match then they at least get 0.5 points. Just need to check if they match exactly
+            # TODO: If an answer is supposed to be reduced to 2, should it be required to enter 2/1 for full points or should 6/3 be accepted as well?
+            resultMessage = ""
+            points = 0.0
+            if givenAnswer == correctAnswer:
+                if ansNumer == correctAnswer.numerator and ansDenom == correctAnswer.denominator:
+                    resultMessage = "Correct - good job!"
+                    points = 1
+                else:
+                    resultMessage = "Partially Correct. Answer needs to be reduced. Correct answer is {0}".format(correctAnswer)
+                    points = 0.5
+            else:
+                resultMessage = "Incorrect. Correct answer is {0}. Try another one!".format(correctAnswer)
+                
+            self.resultsLabel['text'] = resultMessage
+            self.QuizzerSaveResultsToDatabase(selectedOperator, points)
+            
+            # Now reset to a new equation
+            self.numerator['text'] = ""
+            self.denominator['text'] = ""
+            self.QuizzerSetRandomEquation()
+        except ValueError:
+            ErrorboxGeneratpr("Error: Please enter only integers for your answer.")
+        except tk.TclError:
+            ErrorboxGeneratpr("Error: Please select an operator.")
+        self.denominator.delete(0, 'end')
+        self.numerator.delete(0, 'end')
+        
+    def QuizzerSaveResultsToDatabase(self, points, operator):
+        sqlite_file = 'fshdb.sqlite'
+        conn = sqlite3.connect(sqlite_file)
+        c = conn.cursor()
+        c.execute("INSERT INTO results (ID, Operator, Average) VALUES (?,?,?)", (self.controller.username, points, operator,))
+        conn.commit()
+        conn.close()
+        print("Save results for username '{0}'".format(self.controller.username), operator, points,)
+
 
 class ViewResultsWindow(tk.Frame):
 
@@ -264,9 +453,24 @@ class ViewResultsWindow(tk.Frame):
         #TODO using (controller.username) Show table of the users results.
         label = tk.Label(self, text="ViewResultsWindow")
         label.pack(side="top", fill="x", pady=10)
+
+
+        
+        view = tk.Button(self, text='Show Scores', command=self.graph)
+        view.pack()
+
         button = tk.Button(self, text="MainWindow",
                            command=lambda: controller.show_frame("MainWindow"))
         button.pack()
+    def graph(self):
+        objects = ('Addition', 'Subtraction', 'Multiplication', 'Division', 'OverAll')
+        horiz = np.arange(len(objects))
+        scores = [90, 80, 55, 75, 35]
+        plt.bar(horiz, scores, align='center', alpha=0.5)
+        plt.xticks(horiz, objects)
+        plt.ylabel('Average')
+        plt.title('Quiz Averages')
+        plt.show()
 
 class RegisterWindow(tk.Frame):
 
