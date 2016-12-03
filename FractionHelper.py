@@ -6,13 +6,12 @@ import random
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 # Set Operators for use in Solver window
 ops = {"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.truediv}
 
 # Finale Project
 # CIS 4930 Advanced Python Fall 2016
-# Author: Vladislav Ignatov
+# Group: Ignatov
 # Date: 11/3/2016
 
 class App(tk.Tk):
@@ -58,7 +57,7 @@ class App(tk.Tk):
         # Username after it has been validated
         self.username = ""
 
-        # Frame Dictionary holds (LoginWindow, MainWindow, SolverWindow, QuizzerWindow, ViewResultsWindow, RegisterWindow)
+        # Frame Dictionary holds (LoginWindow, MainWindow, SolverWindow, QuizzerWindow, RegisterWindow)
         self.frames = {}
 
         for F in (LoginWindow, MainWindow, SolverWindow, QuizzerWindow, RegisterWindow):
@@ -262,6 +261,7 @@ class SolverWindow(tk.Frame):
         self.operator_input.insert(2,"-")
         self.operator_input.insert(3,"*")
         self.operator_input.insert(4,"/")
+        self.operator_input.configure(exportselection=False)# Stops the deselection
 
         # (y1/y2) second fraction 
         self.y1 = tk.Entry(self, width = 6)
@@ -300,10 +300,10 @@ class SolverWindow(tk.Frame):
     		z1 = int(self.y1.get())
     		z2 = int(self.y2.get())
 
-    		# TODO fix how to represent the result
+    		# Some math with fractions
     		op_func = ops[oper]
-    		w = w1 / w2
-    		z = z1 / z2
+    		w = Fraction(w1, w2)
+    		z = Fraction(z1, z2)
     		reuslt = op_func(w, z)
     		label = tk.Label(self, text= str(reuslt))
     		label.grid(row=4, column=6)
@@ -339,6 +339,7 @@ class QuizzerWindow(tk.Frame):
         self.operator_input.insert(2,"-")
         self.operator_input.insert(3,"*")
         self.operator_input.insert(4,"/")
+        self.operator_input.configure(exportselection=False)
         
         # Second fraction
         self.secondFraction = tk.Label(self, text="")
